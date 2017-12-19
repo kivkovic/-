@@ -357,7 +357,7 @@ const toString = (value) => {
 
   for (idx=0; idx<tokens.length+1; idx++) {
 
-    if (timeout >= 100000) { // timeout after 100k jumps in one function
+    if (timeout >= 10000000) { // timeout after 10M jumps in one function
       results = { peek: () => 'Timeout' };
       break;
 
