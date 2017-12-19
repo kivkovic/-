@@ -2,60 +2,7 @@
 
 const {precedence, prefixes, suffixes, brackets} = require('./tokens.js');
 
-/**
- * Sets an element in a nested structure, e.g. in a multidimensional array or complex JSON
- * If this is an array and key (index) is out of bounds, fill the array with nulls up to that point
- */
- const nestedSet = function (array, keys, value) {
-  let key, idx;
-
-  if (Array.isArray(keys)) {
-    while (Array.isArray(keys[0])) {
-      keys = keys[0].concat(keys.slice(1));
-    }
-    key = keys.shift();
-  }
-
-  if (keys.length) {
-    array[key] = nestedSet(array[key], keys, value);
-
-  } else {
-    if (Array.isArray(array) && key>0) {
-      for (idx = key-1; array[idx] === undefined; idx--) {
-        array[idx] = null;
-      }
-    }
-    array[key] = value;
-  }
-
-  return array;
-}
-
-const toString = (value) => {
-  if (typeof value === 'string') return value;
-  return JSON.stringify(value);
-}
-
-const peek = (array, level = 0) => level == 0 ?
-    array[array.length-1] : peek(array[array.length-1], level-1)
-;
-
-const nunshift = (array, value, level) => {
-  if (!(level > 0)) {
-    array.unshift(value);
-  } else if (level == 1) {
-    array[0] = [value].concat(array[0]);
-  } else {
-    array[0] = nunshift(array[0], value, level-1);
-  }
-  return array;
-}
-
-
-/**
- * Globals
- */
- const
+const
 /**
  * Operator definitions and precedence for RPN
  */
@@ -181,98 +128,10 @@ const nunshift = (array, value, level) => {
 };
 
 /**
- * Given stack and variables, resolve next operand (read, cast and evaluate if neccessary)
- */
- const resolveOperand = (variables, stack, options = {}) => {
-
-  let bracketstack = [], entity = [];
-  let peeked = peek(stack),
-    operand, addr, functiondef, functioninst, innervars;
-
-  if (peeked && peeked.match && (addr = peeked.match(/^<fn:([^:]+)(:.+)?>$/))) {
-    stack.pop();
-    if (addr[1] > -1) {
-      if (!variables['__functions'] || !variables['__functions'][addr[1]]) {
-        throw 'Function not found!';
-      }
-      functiondef = variables['__functions'][addr[1]];
-
-    }
-
-    return functiondef;
-  }
-
-  if (typeof peeked === 'string' && peeked[0] == '"') {
-    return stack.pop();
-  }
-
-  if (peeked == ']') {
-
-    for (; stack.length ;) {
-      peeked = peek(stack);
-
-      if (peeked == '[') { // peek
-        stack.pop();
-        bracketstack.pop();
-        continue;
-
-      } else if (peeked == ']') {
-        entity = nunshift(entity, [], bracketstack.length);
-        bracketstack.push(stack.pop());
-        continue;
-      }
-
-      if (!bracketstack.length) { // validate here that brackets match?
-        operand = entity[0];
-        break;
-
-      } else if (peek(stack) != ']') { // we need to evaluate array elements recursively (I think?)
-          entity = nunshift(
-            entity,
-            resolveOperand(
-              variables,
-              [stack.pop()],
-              options),
-            bracketstack.length
-            );
-      }
-    }
-
-  } else if (peeked != null) {
-    operand = stack.pop();
-
-    if (!isNaN(parseFloat(operand)) && operand == parseFloat(operand)) {
-      operand = parseFloat(operand);
-
-    } else if (String.prototype.match.call(operand, /^[a-z_]+(\.([a-z_]+|[0-9]+))*$/)) {
-
-      if (!options.skipAccessor) {
-
-        if (typeof operand === 'numeric' ||
-            typeof operand === 'boolean' ||
-           (typeof operand === 'string' && operand[0] == '"') ||
-           (['true','false','null'].indexOf(operand) > -1)) {
-          // pass
-        } else if (variables[operand] !== undefined) {
-          operand = variables[operand];
-
-        } else if (operand == '_') {
-          // recursion
-        } else {
-          throw 'Undefined variable "' + operand + '"!';
-        }
-      }
-    }
-  }
-
-  return operand;
- }
-
-/**
  * Runs the code, returning the state (assigned variables) and results (non-assigned expression evaluations ordered chronologically)
  * Tracks resolved tokens (unfortunately we need to do this since variable/member assignment is a bit more complicated than RPN calculation)
  */
- let interpret = (code) => {
+const interpret = (code) => {
 
   let stack = [], results = [], res = [],
   assign = 0, later = null, timeout = 0,
@@ -369,41 +228,10 @@ const nunshift = (array, value, level) => {
 }
 
 /**
- * Determines type for token during evaluation
- */
-const type = (op) => {
-  return ['true',true,'false',false,'null',null].indexOf(op) > -1 ? null
-  : op && typeof op['__function'] != 'undefined' && typeof op['__arguments'] != 'undefined' ? 'F'
-  : Array.isArray(op) ? 'A' // array
-  : typeof op == 'object' ? 'O' // object
-  : typeof op == 'string' && op[0] == '"' ? 'S' // string (this check always needs to be before "number")
-  : parseFloat(op) == "op" ? 'N' // number
-  : op != null && op != undefined ? 'V'
-  : null
-  ;
-}
-
-/**
- * Casts token to given type during evaluation
- */
-const cast = (op, typ) => {
-  if (typ == 'S') return op.slice(1,-1);
-  if (typ == 'N') return parseFloat(op);
-  if (typ == 'A') return op.map(function(e) { return cast(e, type(e)); })
-  if (!typ) {
-    if (op == 'true')  return true;
-    if (op == 'false') return false;
-    if (op == 'null')  return null;
-  }
-  if (typeof op === 'undefined') return null;
-  return op;
-};
-
-/**
  * Evaluates an expression: determines operand types, casts them to native (js) types and calls operation method
  * Options allow for specific syntax such as non-evaluated assignment, e.g. a.3 = ... treats a.3 as a reference, not a value
  */
- const evaluate = (position, operator, op1, op2, options = {}) => {
+const evaluate = (position, operator, op1, op2, options = {}) => {
 
   let args = {}, variables = options.variables || {};
   let tl, tr, value, idx;
@@ -452,6 +280,174 @@ const cast = (op, typ) => {
   if (typeof value === 'undefined') return null;
   return value;
 }
+
+/**
+ * Sets an element in a nested structure, e.g. in a multidimensional array or complex JSON
+ * If this is an array and key (index) is out of bounds, fill the array with nulls up to that point
+ */
+const nestedSet = function (array, keys, value) {
+  let key, idx;
+
+  if (Array.isArray(keys)) {
+    while (Array.isArray(keys[0])) {
+      keys = keys[0].concat(keys.slice(1));
+    }
+    key = keys.shift();
+  }
+
+  if (keys.length) {
+    array[key] = nestedSet(array[key], keys, value);
+
+  } else {
+    if (Array.isArray(array) && key>0) {
+      for (idx = key-1; array[idx] === undefined; idx--) {
+        array[idx] = null;
+      }
+    }
+    array[key] = value;
+  }
+
+  return array;
+}
+
+const toString = (value) => {
+  if (typeof value === 'string') return value;
+  return JSON.stringify(value);
+}
+
+const peek = (array, level = 0) => level == 0 ?
+    array[array.length-1] : peek(array[array.length-1], level-1)
+;
+
+const nunshift = (array, value, level) => {
+  if (!(level > 0)) {
+    array.unshift(value);
+  } else if (level == 1) {
+    array[0] = [value].concat(array[0]);
+  } else {
+    array[0] = nunshift(array[0], value, level-1);
+  }
+  return array;
+}
+
+/**
+ * Given stack and variables, resolve next operand (read, cast and evaluate if neccessary)
+ */
+const resolveOperand = (variables, stack, options = {}) => {
+
+  let bracketstack = [], entity = [];
+  let peeked = peek(stack),
+    operand, addr, functiondef, functioninst, innervars;
+
+  if (peeked && peeked.match && (addr = peeked.match(/^<fn:([^:]+)(:.+)?>$/))) {
+    stack.pop();
+    if (addr[1] > -1) {
+      if (!variables['__functions'] || !variables['__functions'][addr[1]]) {
+        throw 'Function not found!';
+      }
+      functiondef = variables['__functions'][addr[1]];
+
+    }
+
+    return functiondef;
+  }
+
+  if (typeof peeked === 'string' && peeked[0] == '"') {
+    return stack.pop();
+  }
+
+  if (peeked == ']') {
+
+    for (; stack.length ;) {
+      peeked = peek(stack);
+
+      if (peeked == '[') { // peek
+        stack.pop();
+        bracketstack.pop();
+        continue;
+
+      } else if (peeked == ']') {
+        entity = nunshift(entity, [], bracketstack.length);
+        bracketstack.push(stack.pop());
+        continue;
+      }
+
+      if (!bracketstack.length) { // validate here that brackets match?
+        operand = entity[0];
+        break;
+
+      } else if (peek(stack) != ']') { // we need to evaluate array elements recursively (I think?)
+          entity = nunshift(
+            entity,
+            resolveOperand(
+              variables,
+              [stack.pop()],
+              options),
+            bracketstack.length
+            );
+      }
+    }
+
+  } else if (peeked != null) {
+    operand = stack.pop();
+
+    if (!isNaN(parseFloat(operand)) && operand == parseFloat(operand)) {
+      operand = parseFloat(operand);
+
+    } else if (String.prototype.match.call(operand, /^[a-z_]+(\.([a-z_]+|[0-9]+))*$/)) {
+
+      if (!options.skipAccessor) {
+
+        if (typeof operand === 'numeric' ||
+            typeof operand === 'boolean' ||
+           (typeof operand === 'string' && operand[0] == '"') ||
+           (['true','false','null'].indexOf(operand) > -1)) {
+          // pass
+        } else if (variables[operand] !== undefined) {
+          operand = variables[operand];
+
+        } else if (operand == '_') {
+          // recursion
+        } else {
+          throw 'Undefined variable "' + operand + '"!';
+        }
+      }
+    }
+  }
+
+  return operand;
+ }
+
+/**
+ * Determines type for token during evaluation
+ */
+const type = (op) => {
+  return ['true',true,'false',false,'null',null].indexOf(op) > -1 ? null
+  : op && typeof op['__function'] != 'undefined' && typeof op['__arguments'] != 'undefined' ? 'F'
+  : Array.isArray(op) ? 'A' // array
+  : typeof op == 'object' ? 'O' // object
+  : typeof op == 'string' && op[0] == '"' ? 'S' // string (this check always needs to be before "number")
+  : parseFloat(op) == "op" ? 'N' // number
+  : op != null && op != undefined ? 'V'
+  : null
+  ;
+}
+
+/**
+ * Casts token to given type during evaluation
+ */
+const cast = (op, typ) => {
+  if (typ == 'S') return op.slice(1,-1);
+  if (typ == 'N') return parseFloat(op);
+  if (typ == 'A') return op.map(function(e) { return cast(e, type(e)); })
+  if (!typ) {
+    if (op == 'true')  return true;
+    if (op == 'false') return false;
+    if (op == 'null')  return null;
+  }
+  if (typeof op === 'undefined') return null;
+  return op;
+};
 
 /**
  * API
