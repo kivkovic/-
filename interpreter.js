@@ -1,5 +1,7 @@
 'use strict';
 
+const {precedence, prefixes, suffixes, brackets} = require('./tokens.js');
+
 /**
  * Utils
  */
@@ -302,14 +304,14 @@ brackets = { open : {'(':')', '[':']', '{':'}'}, close: {')':'(', ']':'[', '}':'
       continue;
 
     } else if (idx == tokens.length || tokens[idx] === ';') { // expression chain done
-      
+
       for (res = []; stack.length; ) {
         res.unshift(resolveOperand(variables, stack));
       }
       results = results.concat(res);
       stack = [];
 
-    } else if (operators['precedence'][tokens[idx]] > 15) { // brackets have precedence 10 and comma has 15
+    } else if (precedence[tokens[idx]] > 15) { // brackets have precedence 10 and comma has 15
 
       if (suffixes[tokens[idx]]) {
         op2 = resolveOperand(variables, stack, {skipAccessor: tokens[idx] == '=' || tokens[idx] == '°'});

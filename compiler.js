@@ -1,6 +1,11 @@
 'use strict';
 
 /**
+ * Tokens
+ */
+const {precedence, prefixes, suffixes, brackets, groups} = require('./tokens.js');
+
+/**
  * Utils
  */
 
@@ -13,25 +18,6 @@
   return level < 0 ? this : level == 0 ?
     this[this.length-1] : this[this.length-1].peek(level-1);
 }
-
-/**
- * Globals
- */
- var
-/**
- * Operator definitions and precedence for RPN
- */
- operators = {
-  precedence : {
-    '[' : 10, '{' : 10, '(' : 10, ',' : 15, ';' : 15, '=' : 19, '.' : 99, '°' : 99, '@' : 85,
-    '$' : 85, '*' : 80, '**': 80, '/' : 80, '//': 80, '%' : 80, '%%': 80, '^' : 80, '+' : 70,
-    '-' : 70, '<' : 60, '<=': 60, '>' : 60, '>=': 60, '==': 60, '!=': 60, '&' : 50, '|' : 40,
-    '?' : 17, ':' : 19,
-  },
-},
-prefixes = { '!' :1, '~' :1, '-':1, },
-suffixes = { '++':1, '--':1, '$':1, '@@':1, '>>':1, '<<':1, '..':1, '^^':1 },
-brackets = { open : {'(':')', '[':']', '{':'}'}, close: {')':'(', ']':'[', '}':'{'}, };
 
 /**
  * Converts all infix ops to postfix (RPN), since that's easier to work with
@@ -65,14 +51,14 @@ brackets = { open : {'(':')', '[':']', '{':'}'}, close: {')':'(', ']':'[', '}':'
       stack.pop();
       brstack.pop();
 
-      if (char == ']' || char == '}') {
+      if (char === ']' || char === '}') {
         output.push(char);
       }
 
     } else {
 
       while (!brackets['open'][char] && stack.length
-        && ((operators['precedence'][stack.peek()]||100) >= (operators['precedence'][char]||100))) {
+        && ((precedence[stack.peek()]||100) >= (precedence[char]||100))) {
         output.push(stack.pop());
       }
 
