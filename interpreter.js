@@ -60,7 +60,7 @@ const {precedence, prefixes, suffixes, brackets} = require('./tokens.js');
 /**
  * This isn't a prototype because it can't be overriden nicely for all possible values
  */
-let toString = (value) => {
+const toString = (value) => {
   if (typeof value === 'string') return value;
   return JSON.stringify(value);
 }
@@ -77,135 +77,196 @@ let toString = (value) => {
   functions: {
 
     '+' : (left, right, tl, tr) =>
-      //  tl == 'F' && tr == 'F' ? new curry(left, right)
+    // N+N     sum
+    // A+A     concatenate
+    // S+S     concatenate
+    // A+F     reduce left using right
+    // A+_     map: sum left's elems with right
+    // F+F     curry
+    // O+O     union (set)
       tl == 'A' && tr == 'A' ? left.concat(right)
     : tl == 'S' && tr == 'S' ? '"' + left.concat(toString(right)) + '"'
-      //: tl == 'A' && tr == 'F' ? left.reduce(right)
-      //: tl == 'A' ? left.map((e) => _op('infix', '+', e, right))
-      //: tl == 'O' && tr == 'O' ? obj_union(left, right)
-    : left*1 + right*1 // #+ for matrix sum, ^+ for polyynomial sum
+    : left*1 + right*1
     ,
     '-' : (left, right, tl, tr) =>
-      //  tl == 'A' && tr == 'A' ? array_difference(left, right)
-      //: tl == 'A' && tr == 'F' ? left.filter((e)  => !right.call(e)) // reverse filter
-      //: tl == 'A' ? left.map((e) => _op('infix', '-', e, right))
-      tl == 'S' ? left.replace(right, '') // to regex -- new regexp(right, 'g'), ''
-      //: tl == 'O' ? obj_difference(left, right)
-      : left*1 - right*1 // #- for matrix diff, ^- for polynomial diff
+    // N-N     difference
+    // A-A     element difference
+    // A-F     inverse filter
+    // A-_     map: subtract right from left's elems
+    // S-_     remove all occurences
+    // O-_     difference (set)
+      tl == 'S' ? left.replace(right, '')
+      : left*1 - right*1
     ,
     '*' : (left, right, tl, tr) =>
-      //  tl == 'A' && tr == 'A' ? null // zip
-      //: tl == 'A' && tr == 'F' ? left.map(right)
-      //: tl == 'A' ? left.map((e) => _op('infix', '*', e, right))
-      //: tl == 'F' && tr == 'F' ? new compose(left, right)
+    // N*N     multiplication
+    // A*A     zip
+    // A*F     map
+    // A*_     map: multiply left's elems with right
+    // F*F     compose
+    // O*O     cartesian product
       tl == 'S' ? left.match(right)
-      //: tl == 'O' && tr == 'O' ? obj_intersect(left, right)
       : left*1 * right*1
       ,
-    '/' : (left, right, tl, tr) => // https://github.com/jcoglan/sylvester
-      //  tl == 'A' && tr == 'A' ? null // unzip
-      //: tl == 'A' && tr == 'F' ? left.filter(right)
-      //: tl == 'A' ? left.map((e) => _op('infix', '/', e, right))
+    '/' : (left, right, tl, tr) =>
+    // N/N     division
+    // A/A     unzip
+    // A/F     filter
+    // A/_     map: divid left's elems with right
       tl == 'S' && tr == 'N' ? left.match(new RegExp('.{1,' + right + '}', 'g'))
-      : left*1 / right*1.0 // maybe #/ for matrix div and user array / array for reverse cartesian product, ^/ for polynomial div
+      : left*1 / right*1.0
       ,
-    '%' : (left, right, tl, tr) => // https://github.com/infusion/Polynomial.js/blob/master/polynomial.js
-      //  tl == 'A' && tr == 'F' ? left.forEach(right)
-      //: tl == 'A' ? left.map((e) => _op('infix', '%', e, right))
-      //: tl == 'O' && tr == 'O' ? null // polynomial derivative or matrix something
+    '^': (left, right, tl, tr) => null
+    // A^N     convert to base (from decimal)
+    // A^{_:_} convert using base (key) to base (value)
+    // N^N     exponentation
+      ,
+    '%' : (left, right, tl, tr) =>
+    // N%N     modulo
+    // A%F     for each loop over left, applying right
+    // A%N     rotate by n positions right
+    // S%N     rotate by n positions right
       tl == 'S' && tr == 'A' && right[0].length >= 2 ? left.replace(right[0], right[1])
       : left*1 % right*1
       ,
     '**': (left, right, tl, tr) =>
-      //  tl == 'A' ? left.map((e) => _op('infix', '**', e, right))
+    // N**N    least common multiple
+    // A**_    push
+    // S**_    append
       Math.pow(left*1, right*1)
       ,
     '//': (left, right, tl, tr) =>
-      //  tl == 'A' ? rotate_array(left, right)
-      //: tl == 'S' ? rotate_array(left.split(''), right).join('')
+    // N//N    nth root
+    // A//_    unshift
+    // S//_    prepend
       tl == 'N' && right == 2 ? Math.sqrt(left)
       : Math.pow(left*1, 1 / right)
       ,
-    '%%': (left, right, tl, tr) =>
-      //  tl == 'A' ? rotate_array(left, right)
-      //: tl == 'S' ? rotate_array(left.split(''), right).join('')
-      Math.log(left*1) / Math.log(right*1)
+    '%%': (left, right, tl, tr) => null
+    // N%%N    greatest common divisor
+    // A%%_    join
       ,
     '@' : (left, right, tl, tr) =>
+    // S@{_:_} regex replace with (reading key-value pairs)
+    // S@_     regex search -- returns position-value array of matches
+    // A@{_:_} replace with (reading key-value pairs)
+    // A@_     find all -- returns position-value array of matches
+    // O@_     find all by values -- returns key-value pairs
+    // N@N     divisible by
       tl == 'S' ?
-        tr == 'A' ?
-          '"' + left.replace(new RegExp(right[0], 'g'), right[1]) + '"'
+        tr == 'O' ?
+          '"' + left.replace(new RegExp(Object.keys(right)[0], 'g'), right[Object.keys(right)[0]]) + '"'
         : left.match(new RegExp(right, 'g')) || []
       : tl == 'A' ?
-          tr == 'A' ?
+          tr == 'O' ?
           left.map((e) => e != right[0] ? e : right[1])
         : left.reduce((list, e, i) => (e == right && list.push(i) || 1) && list, [])
       : tl == 'N' && tr == 'N' ?
         (left % right) == 0
       : null
       ,
-    '^' : (left, right, tl, tr) => null
-      ,
     '&&': (left, right, tl, tr) => left & right
+    // _&&_    bitwise and
       ,
     '&' : (left, right, tl, tr) => left && right
+    // _&_     logical and (returns false or last evaluated true value)
       ,
     '||': (left, right, tl, tr) => left | right
+    // _||_    bitwise or
       ,
     '|' : (left, right, tl, tr) => left || right
+    // _|_     logical or (returns false or last evaluated true value)
+      ,
+    '^^' : (left, right, tl, tr) => left ^ right
+    // S^^S    split by regex delimiter
+    // _^^_    bitwise xor
       ,
     '<' : (left, right, tl, tr) =>
-      //  tl == 'A' ? null // array contains not equals
+    // _<N     less than
+    // _<A     strict unordered sublist of (contained by, not equal) -- returns idx+1, where idx is position (0 = false)
+    // O<O     strict subset of (contained by, not equal)
+    // _<S     is substring of, of smaller length (contained by, not equal) -- idx+1
       tl == 'S' ? left != right && right.indexOf(left) > -1
-      //: t == 'O' ?
       : left*1 < right*1
       ,
     '<=': (left, right, tl, tr) =>
-      //  tl == 'A' ? null // array contains all
+    // _<=N    less than or equal to
+    // _<=A    unordered sublist of (contained by) -- idx+1
+    // O<=O    subset of (contained by)
+    // _<=S    substring of (contained by) -- idx+1
       tl == 'S' ? right.indexOf(left) > -1
-      //: t == 'O' ?
       : left*1 <= right*1
       ,
     '>' : (left, right, tl, tr) =>
-      //  tl == 'A' ? null // array contains not equals
+    // N>_     larger than
+    // A>_     strict unordered superlist of (contains) -- idx+1
+    // O>O     strict superset of (contained by, not equal)
+    // S>_     is substring of smaller length (contains) -- idx+1
       tl == 'S' ? left != right && left.indexOf(right) > -1
-      //: tl == 'O' ? // object contains not equals
       : left*1 > right*1
       ,
     '>=': (left, right, tl, tr) =>
-      //  tl == 'A' ? null // array contains
+    // N>=_    greater than or equal to
+    // A>=_    unordered superlist of (contains) -- idx+1
+    // O>=O    superset of (contained by)
+    // S>=_    superstring of (contains) -- idx+1
       tl == 'S' ? left.indexOf(right) > -1
-      //: tl == 'O' ? // object contains
       : left*1 >= right*1
       ,
     '!=': (left, right, tl, tr) => left != right
+    // _!=_    serialized not equal to
       ,
     '==': (left, right, tl, tr) => left == right
+    // _==_    serialized equal to
       ,
     '$' : (left, right, tl, tr) => right.length || 0
+    // N$      to integer
+    // A$      length of
+    // S$      unicode length of
+    // O$      length of keys
       ,
+    '++': (left, right, tl, tr) => null
+    // N++     increment
+    // O++     values to array
+    // A++     sum reduce
+    // S++     to uppercase
+    ,
+    '--': (left, right, tl, tr) => null
+    // N--     decrement
+    // F--     uncurry
+    // O--     keys to array
+    // A--     difference reduce
+    // S--     to lowercase
+    ,
+    '@@': (left, right, tl, tr) => null
+    // N@@     prime factors
+    // O@@     swap keys with values
+    // A@@     transpose
+    // S@@     explode (split by each unicode character)
+    ,
+    '>>': (left, right, tl, tr) => null
+    // N>>
+    // O>>
+    // A>>     pop
+    // S>>     remove last unicode character
+    ,
+    '<<': (left, right, tl, tr) => null
+    // N<<
+    // O<<
+    // A<<     shift
+    // S<<     remove first unicode character
+    ,
   },
-  precedence : {
-    '[' : 10, '{' : 10, '(' : 10, ',' : 15, ';' : 15, '=' : 19, '.' : 99, '°' : 99, '@' : 85,
-    '$' : 85, '*' : 80, '**': 80, '/' : 80, '//': 80, '%' : 80, '%%': 80, '^' : 80, '+' : 70,
-    '-' : 70, '<' : 60, '<=': 60, '>' : 60, '>=': 60, '==': 60, '!=': 60, '&' : 50, '|' : 40,
-    '?' : 17, ':' : 19,
-  },
-},
-prefixes = { '!' :1, '~' :1, '-':1, },
-suffixes = { '++':1, '--':1, '$':1, '@@':1, '>>':1, '<<':1, '..':1, '^^':1 },
-brackets = { open : {'(':')', '[':']', '{':'}'}, close: {')':'(', ']':'[', '}':'{'}, };
-
+};
 
 /**
  * Given stack and variables, resolve next operand (read, cast and evaluate if neccessary)
  */
- let resolveOperand = (variables, stack, options) => {
+ const resolveOperand = (variables, stack, options = {}) => {
 
-  let bracketstack = [], entity = [], peek = stack.peek(),
-  operand, addr, functiondef, functioninst, innervars;
-
-  options = options || {};
+  let bracketstack = [], entity = [];
+  let peek = stack.peek(),
+    operand, addr, functiondef, functioninst, innervars;
 
   if (peek && peek.match && (addr = peek.match(/^<fn:([^:]+)(:.+)?>$/))) {
     stack.pop();
@@ -413,9 +474,10 @@ let cast = (op, typ) => {
  * Evaluates an expression: determines operand types, casts them to native (js) types and calls operation method
  * Options allow for specific syntax such as non-evaluated assignment, e.g. a.3 = ... treats a.3 as a reference, not a value
  */
- let evaluate = (position, operator, op1, op2, options) => {
-  options = options || {};
-  let args = {}, variables = options.variables || {}, tl, tr, value, idx;
+ const evaluate = (position, operator, op1, op2, options = {}) => {
+
+  let args = {}, variables = options.variables || {};
+  let tl, tr, value, idx;
 
   tl = type(op1);
   tr = type(op2);

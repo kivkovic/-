@@ -22,14 +22,13 @@ const {precedence, prefixes, suffixes, brackets, groups} = require('./tokens.js'
 /**
  * Converts all infix ops to postfix (RPN), since that's easier to work with
  */
- let toPostfix = (expression) => {
+ const toPostfix = (expression) => {
 
-  let stack = [], output = [], brstack = [],
-  idx, char, br;
+  const stack = [], output = [], brstack = [];
 
-  for (idx = 0; idx < expression.length; idx++) {
+  for (let idx = 0; idx < expression.length; idx++) {
 
-    char = expression[idx];
+    let char = expression[idx];
     if (char === undefined) {
       continue;
     }
@@ -42,7 +41,7 @@ const {precedence, prefixes, suffixes, brackets, groups} = require('./tokens.js'
       }
     }
 
-    br = brackets['close'][brstack.peek()];
+    let br = brackets['close'][brstack.peek()];
 
     if (char == brstack.peek()) {
       while (stack.peek() != br) {
@@ -81,30 +80,16 @@ const {precedence, prefixes, suffixes, brackets, groups} = require('./tokens.js'
  * Converts expression to tokens: groups strings and floats and multi-char operators,
  *   replaces prefix operators and some binary with equivalent binary ops for easier evaluation later
  */
- let tokenize = (expression) => {
-  let
-    tokens = expression.split(''),
-    grouped = {
-      '*' : {'*':1},
-      '+' : {'+':1},
-      '-' : {'-':1},
-      '@' : {'@':1},
-      '$' : {'$':1},
-      '+' : {'+':1},
-      '-' : {'-':1},
-      '<' : {'<':1, '=':1},
-      '>' : {'>':1, '=':1},
-      '=' : {'=':1, '>':1},
-      '!' : {'=':1},
-      '#' : {'!':1, '$':1, '@':1}, // break, continue, return
-      },
-    brstack, idx, jdx, group, concat, esc, num, last, open;
+ const tokenize = (expression) => {
+
+  let brstack, idx, jdx, group, concat, esc, num, last, open,
+    tokens = expression.split('');
 
   for (idx=0, esc=0, concat=-1; idx<tokens.length; idx++) { // group strings so we don't have to check if anything is unquoted
-    if (tokens[idx] == '\\') {
+    if (tokens[idx] === '\\') {
       esc++;
     } else {
-      if (tokens[idx] == '"' && !(esc%2)) {
+      if (tokens[idx] === '"' && !(esc%2)) {
         if (concat == -1) {
           concat++;
         } else {
@@ -195,21 +180,25 @@ const {precedence, prefixes, suffixes, brackets, groups} = require('./tokens.js'
 /**
  * Translate flow constructs into intermediate instructions, extract functions
  */
- let assemble = (tokens, options) => {
-  let loops = [], conditions = [], bracketstack = [], argstack = [], fn_id = 0,
-  variables, idx, jdx, kdx, open, last;
+ const assemble = (tokenArray, options = {}) => {
 
-  options = options || {};
-  variables = options.variables || {};
+  let loops = [], conditions = [],
+    bracketstack = [], argstack = [],
+    tokens = tokenArray.map(e => e),
+    variables = options.variables || {};
+
+  let fn_id = 0, idx, jdx, kdx, open, last;
+
+
   variables['__functions'] = variables['__functions'] || [];
 
   for (idx=tokens.length-1, open=0, jdx=-1; idx>=0; idx--) {
-    if (tokens[idx] == '}') {
-      if (tokens[idx+1] == '=' && jdx == -1) {
+    if (tokens[idx] === '}') {
+      if (tokens[idx+1] === '=' && jdx === -1) {
         jdx=idx;
       }
       open++;
-    } else if (tokens[idx] == '{') {
+    } else if (tokens[idx] === '{') {
       open--;
     }
 
@@ -228,16 +217,16 @@ const {precedence, prefixes, suffixes, brackets, groups} = require('./tokens.js'
 
   for (idx=0, jdx=0, open=0, last=0, bracketstack = []; idx<tokens.length; idx++) {
 
-    if (tokens[idx] == '[') {
+    if (tokens[idx] === '[') {
       open++;
-    } else if (tokens[idx] == ']') {
+    } else if (tokens[idx] === ']') {
       open--;
     }
 
     if (tokens[idx] === ';' || tokens[idx] === ',') {
       jdx = idx;
 
-    } else if (tokens[idx] == '{') {
+    } else if (tokens[idx] === '{') {
       for (jdx=idx; jdx>=0; jdx--) {
         if (tokens[jdx].match(/^(;|,|<jmp:.+)$/)) {
           break;
@@ -245,11 +234,11 @@ const {precedence, prefixes, suffixes, brackets, groups} = require('./tokens.js'
       }
       loops.push({ condition: jdx, start: idx });
 
-    } else if (tokens[idx] == '}') {
+    } else if (tokens[idx] === '}') {
       for (jdx=idx; jdx>=0; jdx--) {
-        if (tokens[jdx] == '#!') {
+        if (tokens[jdx] === '#!') {
           tokens[jdx] = '<jmp:' + (idx+1) + ':break>';
-        } else if (tokens[jdx] == '#$') {
+        } else if (tokens[jdx] === '#$') {
           tokens[jdx] = '<jmp:' + loops.peek().condition + ':continue>';
         }
       }
@@ -257,13 +246,13 @@ const {precedence, prefixes, suffixes, brackets, groups} = require('./tokens.js'
       tokens[idx] = '<jmp:' + loops.peek().condition + ':loop>';
       tokens[loops.pop().start] = '<jmpz:' + (idx+1) + ':loop>';
 
-    } else if (tokens[idx] == '#@') {
+    } else if (tokens[idx] === '#@') {
       tokens[idx] = '<exit:0:return>';
 
-    } else if (tokens[idx] == '?') {
+    } else if (tokens[idx] === '?') {
       conditions.push({ condition: jdx, start: idx });
 
-    } else if (tokens[idx] == ':') {
+    } else if (tokens[idx] === ':') {
 
       for (jdx=idx+1, bracketstack=0; jdx<tokens.length; jdx++) {
 
