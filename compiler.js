@@ -6,10 +6,6 @@
 const {precedence, prefixes, suffixes, brackets, groups} = require('./tokens.js');
 
 /**
- * Utils
- */
-
-/**
  * Array peek
  */
 const peek = (array, level = 0) => level == 0 ?
