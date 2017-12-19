@@ -539,9 +539,3 @@ module.exports.run = (input) => {
     return 'Interpreter error: ' + error;
   }
 }
-
-module.exports.debug = (input) => {
-  console.log(input);
-  return run(input);
-}
-

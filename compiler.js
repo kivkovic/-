@@ -283,13 +283,6 @@ const {precedence, prefixes, suffixes, brackets, groups} = require('./tokens.js'
 /**
  * API
  */
-module.exports.bytecode = (code) => {
-  try {
-    return JSON.stringify(compile(code));
-  } catch (error) {
-    return 'Compiler error: ' + error;
-  }
-}
 module.exports.run = (code) => {
   try {
     return assemble(toPostfix(tokenize(code)));
