@@ -6,7 +6,7 @@ const {precedence, prefixes, suffixes, brackets} = require('./tokens.js');
  * Sets an element in a nested structure, e.g. in a multidimensional array or complex JSON
  * If this is an array and key (index) is out of bounds, fill the array with nulls up to that point
  */
- Object.prototype.nestedSet = function (keys, value) {
+ const nestedSet = function (array, keys, value) {
   let key, idx;
 
   if (Array.isArray(keys)) {
@@ -17,16 +17,18 @@ const {precedence, prefixes, suffixes, brackets} = require('./tokens.js');
   }
 
   if (keys.length) {
-    this[key].nestedSet(keys, value);
+    array[key] = nestedSet(array[key], keys, value);
 
   } else {
-    if (Array.isArray(this) && key>0) {
-      for (idx = key-1; this[idx] === undefined; idx--) {
-        this[idx] = null;
+    if (Array.isArray(array) && key>0) {
+      for (idx = key-1; array[idx] === undefined; idx--) {
+        array[idx] = null;
       }
     }
-    this[key] = value;
+    array[key] = value;
   }
+
+  return array;
 }
 
 const toString = (value) => {
@@ -319,7 +321,7 @@ const nunshift = (array, value, level) => {
             };
 
           } else {
-            variables.nestedSet(op1, op2);
+            variables = nestedSet(variables, op1, op2);
           }
         } else {
           while (stack.length && (typeof op1 != 'string' || !op1.match(/^[_a-z][_a-z0-9]*$/))) {
