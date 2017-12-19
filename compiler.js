@@ -138,20 +138,20 @@ const {precedence, prefixes, suffixes, brackets, groups} = require('./tokens.js'
 
       } else if (tokens[idx-1] == '-') { // replace prefix - with -1*, so we can evaluate it as a binary op
         if (idx==2 || (idx<tokens.length-1 &&
-          (operators['precedence'][tokens[idx-2]] && !suffixes[tokens[idx-2]]) || ['(','[',',',';'].indexOf(tokens[idx-2]) > -1)) {
+          (precedence[tokens[idx-2]] && !suffixes[tokens[idx-2]]) || ['(','[',',',';'].indexOf(tokens[idx-2]) > -1)) {
           tokens.splice(idx-1, 1, '-1', '*');
           idx+=2;
         }
 
-      } else if (tokens[idx-1] == '!' && !grouped[tokens[idx-1]][tokens[idx]]) { // replace ! with false&, so we can evaluate it as a binary op
-        tokens.splice(idx-1, 1, 'F', '&');
+      } else if (tokens[idx-1] === '!' && !groups[tokens[idx-1]][tokens[idx]]) { // replace ! with false&, so we can evaluate it as a binary op
+        tokens.splice(idx-1, 1, 'false', '&');
         idx++;
 
       } else if (tokens[idx-1] == '~') { // insert F before ~ so we can evaluate it as a binary op
         tokens.splice(idx-1, 1, 'F', '~');
         idx++;
 
-      } else if (grouped[tokens[idx-1]] && grouped[tokens[idx-1]][tokens[idx]]) {
+      } else if (groups[tokens[idx-1]] && groups[tokens[idx-1]][tokens[idx]]) {
         tokens[idx-1] += tokens[idx];
         tokens[idx] = undefined;
 
