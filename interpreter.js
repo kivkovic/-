@@ -410,11 +410,12 @@ const toString = (value) => {
         stack.push(op2);
 
       } else {
-        if (op1 === undefined && op2 === undefined ) {
+        if (op1 === undefined && op2 === undefined) {
           continue;
         }
 
         value = evaluate('bin', tokens[idx], op1, op2, {'tokens': tokens, 'variables': variables, 'arguments': code.arguments || {}});
+        if (typeof value === 'undefined') value = null;
         stack.push(value);
       }
 
@@ -436,6 +437,7 @@ const toString = (value) => {
       }
 
     } else {
+      if (typeof tokens[idx] === 'undefined') tokens[idx] = null;
       stack.push(tokens[idx]);
     }
 
@@ -525,6 +527,7 @@ const cast = (op, typ) => {
     }
   }
 
+  if (typeof value === 'undefined') return null;
   return value;
 }
 

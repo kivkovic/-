@@ -111,16 +111,16 @@ const {precedence, prefixes, suffixes, brackets, groups} = require('./tokens.js'
   }
 
   for (idx=0; idx<tokens.length; idx++) {
-    if (tokens[idx] == '=') {
-      brstack = tokens[idx-1] == ']' ? 1 : 0;
+    if (tokens[idx] === '=') {
+      brstack = tokens[idx-1] === ']' ? 1 : 0;
       for (jdx = idx-1-brstack; jdx>0 && ([';','{','}','?',':',','].indexOf(tokens[jdx]) == -1 || brstack); jdx--) {
-        if (tokens[jdx] == '.') {
+        if (tokens[jdx] === '.') {
           tokens[jdx] = '°';
 
-        } else if (tokens[jdx] == '[') {
+        } else if (tokens[jdx] === '[') {
           brstack--;
 
-        } else if (tokens[jdx] == ']') {
+        } else if (tokens[jdx] === ']') {
           brstack++;
         }
       }
@@ -145,7 +145,7 @@ const {precedence, prefixes, suffixes, brackets, groups} = require('./tokens.js'
     if (tokens[idx-1] === undefined) {
       continue;
 
-      } else if (tokens[idx-1] == '-') { // replace prefix - with -1*, so we can evaluate it as a binary op
+      } else if (tokens[idx-1] === '-') { // replace prefix - with -1*, so we can evaluate it as a binary op
         if (idx==2 || (idx<tokens.length-1 &&
           (precedence[tokens[idx-2]] && !suffixes[tokens[idx-2]]) || ['(','[',',',';'].indexOf(tokens[idx-2]) > -1)) {
           tokens.splice(idx-1, 1, '-1', '*');
