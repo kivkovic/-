@@ -325,11 +325,15 @@ const toString = (value) => {
     } else if (String.prototype.match.call(operand, /^[a-z_]+(\.([a-z_]+|[0-9]+))*$/)) {
 
       if (!options.skipAccessor) {
-        if (variables[operand] !== undefined) {
+
+        if (typeof operand === 'numeric' ||
+            typeof operand === 'boolean' ||
+           (typeof operand === 'string' && operand[0] == '"') ||
+           (['true','false','null'].indexOf(operand) > -1)) {
+          // pass
+        } else if (variables[operand] !== undefined) {
           operand = variables[operand];
 
-        } else if (typeof operand === 'numeric' || typeof operand === 'boolean' || (typeof operand === 'string' && operand[0] == '"')) {
-          // nothing to see here
         } else if (operand == '_') {
           // recursion
         } else {
@@ -443,8 +447,8 @@ const toString = (value) => {
 /**
  * Determines type for token during evaluation
  */
-let type = (op) => {
-  return ['T','F','N'].indexOf(op) > -1 ? null
+const type = (op) => {
+  return ['true',true,'false',false,'null',null].indexOf(op) > -1 ? null
   : op && typeof op['__function'] != 'undefined' && typeof op['__arguments'] != 'undefined' ? 'F'
   : Array.isArray(op) ? 'A' // array
   : typeof op == 'object' ? 'O' // object
@@ -458,15 +462,16 @@ let type = (op) => {
 /**
  * Casts token to given type during evaluation
  */
-let cast = (op, typ) => {
+const cast = (op, typ) => {
   if (typ == 'S') return op.slice(1,-1);
   if (typ == 'N') return parseFloat(op);
   if (typ == 'A') return op.map(function(e) { return cast(e, type(e)); })
   if (!typ) {
-    if (op == 'T') return true;
-    if (op == 'F') return false;
-    if (op == 'N') return null;
+    if (op == 'true')  return true;
+    if (op == 'false') return false;
+    if (op == 'null')  return null;
   }
+  if (typeof op === 'undefined') return null;
   return op;
 };
 

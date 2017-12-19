@@ -125,6 +125,15 @@ const {precedence, prefixes, suffixes, brackets, groups} = require('./tokens.js'
         }
       }
     }
+    else if (tokens[idx] === 'F') {
+      tokens[idx] = 'false';
+    }
+    else if (tokens[idx] === 'T') {
+      tokens[idx] = 'true';
+    }
+    else if (tokens[idx] === 'N') {
+      tokens[idx] = 'null';
+    }
   }
 
   // a shitty filter that could've been done earlier
@@ -147,8 +156,8 @@ const {precedence, prefixes, suffixes, brackets, groups} = require('./tokens.js'
         tokens.splice(idx-1, 1, 'false', '&');
         idx++;
 
-      } else if (tokens[idx-1] == '~') { // insert F before ~ so we can evaluate it as a binary op
-        tokens.splice(idx-1, 1, 'F', '~');
+      } else if (tokens[idx-1] === '~') { // insert F before ~ so we can evaluate it as a binary op
+        tokens.splice(idx-1, 1, 'false', '~');
         idx++;
 
       } else if (groups[tokens[idx-1]] && groups[tokens[idx-1]][tokens[idx]]) {
