@@ -77,82 +77,48 @@ const toString = (value) => {
   functions: {
 
     '+' : (left, right, tl, tr) =>
-    // N+N     sum
-    // A+A     concatenate
-    // S+S     concatenate
-    // A+F     reduce left using right
-    // A+_     map: sum left's elems with right
-    // F+F     curry
-    // O+O     union (set)
+    // TODO: finish
       tl == 'A' && tr == 'A' ? left.concat(right)
     : tl == 'S' && tr == 'S' ? '"' + left.concat(toString(right)) + '"'
     : left*1 + right*1
     ,
     '-' : (left, right, tl, tr) =>
-    // N-N     difference
-    // A-A     element difference
-    // A-F     inverse filter
-    // A-_     map: subtract right from left's elems
-    // S-_     remove all occurences
-    // O-_     difference (set)
+    // TODO: finish
       tl == 'S' ? left.replace(right, '')
       : left*1 - right*1
     ,
     '*' : (left, right, tl, tr) =>
-    // N*N     multiplication
-    // A*A     zip
-    // A*F     map
-    // A*_     map: multiply left's elems with right
-    // F*F     compose
-    // O*O     cartesian product
+    // TODO: finish
       tl == 'S' ? left.match(right)
       : left*1 * right*1
       ,
     '/' : (left, right, tl, tr) =>
-    // N/N     division
-    // A/A     unzip
-    // A/F     filter
-    // A/_     map: divid left's elems with right
+    // TODO: finish
       tl == 'S' && tr == 'N' ? left.match(new RegExp('.{1,' + right + '}', 'g'))
       : left*1 / right*1.0
       ,
     '^': (left, right, tl, tr) => null
-    // A^N     convert to base (from decimal)
-    // A^{_:_} convert using base (key) to base (value)
-    // N^N     exponentation
+    // TODO: finish
       ,
     '%' : (left, right, tl, tr) =>
-    // N%N     modulo
-    // A%F     for each loop over left, applying right
-    // A%N     rotate by n positions right
-    // S%N     rotate by n positions right
+    // TODO: finish
       tl == 'S' && tr == 'A' && right[0].length >= 2 ? left.replace(right[0], right[1])
       : left*1 % right*1
       ,
     '**': (left, right, tl, tr) =>
-    // N**N    least common multiple
-    // A**_    push
-    // S**_    append
+    // TODO: finish
       Math.pow(left*1, right*1)
       ,
     '//': (left, right, tl, tr) =>
-    // N//N    nth root
-    // A//_    unshift
-    // S//_    prepend
+    // TODO: finish
       tl == 'N' && right == 2 ? Math.sqrt(left)
       : Math.pow(left*1, 1 / right)
       ,
     '%%': (left, right, tl, tr) => null
-    // N%%N    greatest common divisor
-    // A%%_    join
+    // TODO: finish
       ,
     '@' : (left, right, tl, tr) =>
-    // S@{_:_} regex replace with (reading key-value pairs)
-    // S@_     regex search -- returns position-value array of matches
-    // A@{_:_} replace with (reading key-value pairs)
-    // A@_     find all -- returns position-value array of matches
-    // O@_     find all by values -- returns key-value pairs
-    // N@N     divisible by
+    // TODO: finish
       tl == 'S' ?
         tr == 'O' ?
           '"' + left.replace(new RegExp(Object.keys(right)[0], 'g'), right[Object.keys(right)[0]]) + '"'
@@ -166,95 +132,63 @@ const toString = (value) => {
       : null
       ,
     '&&': (left, right, tl, tr) => left & right
-    // _&&_    bitwise and
+    // TODO: finish
       ,
     '&' : (left, right, tl, tr) => left && right
-    // _&_     logical and (returns false or last evaluated true value)
+    // TODO: finish
       ,
     '||': (left, right, tl, tr) => left | right
-    // _||_    bitwise or
+    // TODO: finish
       ,
     '|' : (left, right, tl, tr) => left || right
-    // _|_     logical or (returns false or last evaluated true value)
+    // TODO: finish
       ,
     '^^' : (left, right, tl, tr) => left ^ right
-    // S^^S    split by regex delimiter
-    // _^^_    bitwise xor
+    // TODO: finish
       ,
     '<' : (left, right, tl, tr) =>
-    // _<N     less than
-    // _<A     strict unordered sublist of (contained by, not equal) -- returns idx+1, where idx is position (0 = false)
-    // O<O     strict subset of (contained by, not equal)
-    // _<S     is substring of, of smaller length (contained by, not equal) -- idx+1
+    // TODO: finish
       tl == 'S' ? left != right && right.indexOf(left) > -1
       : left*1 < right*1
       ,
     '<=': (left, right, tl, tr) =>
-    // _<=N    less than or equal to
-    // _<=A    unordered sublist of (contained by) -- idx+1
-    // O<=O    subset of (contained by)
-    // _<=S    substring of (contained by) -- idx+1
+    // TODO: finish
       tl == 'S' ? right.indexOf(left) > -1
       : left*1 <= right*1
       ,
     '>' : (left, right, tl, tr) =>
-    // N>_     larger than
-    // A>_     strict unordered superlist of (contains) -- idx+1
-    // O>O     strict superset of (contained by, not equal)
-    // S>_     is substring of smaller length (contains) -- idx+1
+    // TODO: finish
       tl == 'S' ? left != right && left.indexOf(right) > -1
       : left*1 > right*1
       ,
     '>=': (left, right, tl, tr) =>
-    // N>=_    greater than or equal to
-    // A>=_    unordered superlist of (contains) -- idx+1
-    // O>=O    superset of (contained by)
-    // S>=_    superstring of (contains) -- idx+1
+    // TODO: finish
       tl == 'S' ? left.indexOf(right) > -1
       : left*1 >= right*1
       ,
     '!=': (left, right, tl, tr) => left != right
-    // _!=_    serialized not equal to
+    // TODO: finish
       ,
     '==': (left, right, tl, tr) => left == right
-    // _==_    serialized equal to
+    // TODO: finish
       ,
     '$' : (left, right, tl, tr) => right.length || 0
-    // N$      to integer
-    // A$      length of
-    // S$      unicode length of
-    // O$      length of keys
+    // TODO: finish
       ,
     '++': (left, right, tl, tr) => null
-    // N++     increment
-    // O++     values to array
-    // A++     sum reduce
-    // S++     to uppercase
+    // TODO: finish
     ,
     '--': (left, right, tl, tr) => null
-    // N--     decrement
-    // F--     uncurry
-    // O--     keys to array
-    // A--     difference reduce
-    // S--     to lowercase
+    // TODO: finish
     ,
     '@@': (left, right, tl, tr) => null
-    // N@@     prime factors
-    // O@@     swap keys with values
-    // A@@     transpose
-    // S@@     explode (split by each unicode character)
+    // TODO: finish
     ,
     '>>': (left, right, tl, tr) => null
-    // N>>
-    // O>>
-    // A>>     pop
-    // S>>     remove last unicode character
+    // TODO: finish
     ,
     '<<': (left, right, tl, tr) => null
-    // N<<
-    // O<<
-    // A<<     shift
-    // S<<     remove first unicode character
+    // TODO: finish
     ,
   },
 };
