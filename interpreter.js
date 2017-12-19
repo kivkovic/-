@@ -7,16 +7,6 @@ const {precedence, prefixes, suffixes, brackets} = require('./tokens.js');
  */
 
 /**
- * Nested peek: returns last elem of array optionally entering nested structure, e.g. for [1,[2,[3]]]: level=0 is [2,[3]], level=1 is [3], level=2 is 3
- * No argument or zero defaults to Array.prototype.peek(), negative returns this
- */
- Array.prototype.peek = function (level) {
-  level = level || 0;
-  return level < 0 ? this : level == 0 ?
-    this[this.length-1] : this[this.length-1].peek(level-1);
-}
-
-/**
  * Nested unshift: finds first elem of array and appends the current value in front to it, entering n levels of nested structures
  * e.g. nunshift for [[[1],2],3]: level=0 will place value before [[1],2], level=1 will place it before [1], level=2 will place it before 1
  */
@@ -57,13 +47,14 @@ const {precedence, prefixes, suffixes, brackets} = require('./tokens.js');
   }
 }
 
-/**
- * This isn't a prototype because it can't be overriden nicely for all possible values
- */
 const toString = (value) => {
   if (typeof value === 'string') return value;
   return JSON.stringify(value);
 }
+
+const peek = (array, level = 0) => level == 0 ?
+    array[array.length-1] : peek(array[array.length-1], level-1)
+;
 
 /**
  * Globals
@@ -199,10 +190,10 @@ const toString = (value) => {
  const resolveOperand = (variables, stack, options = {}) => {
 
   let bracketstack = [], entity = [];
-  let peek = stack.peek(),
+  let peeked = peek(stack),
     operand, addr, functiondef, functioninst, innervars;
 
-  if (peek && peek.match && (addr = peek.match(/^<fn:([^:]+)(:.+)?>$/))) {
+  if (peeked && peeked.match && (addr = peeked.match(/^<fn:([^:]+)(:.+)?>$/))) {
     stack.pop();
     if (addr[1] > -1) {
       if (!variables['__functions'] || !variables['__functions'][addr[1]]) {
@@ -215,21 +206,21 @@ const toString = (value) => {
     return functiondef;
   }
 
-  if (typeof peek === 'string' && peek[0] == '"') {
+  if (typeof peeked === 'string' && peeked[0] == '"') {
     return stack.pop();
   }
 
-  if (peek == ']') {
+  if (peeked == ']') {
 
     for (; stack.length ;) {
-      peek = stack.peek();
+      peeked = peek(stack);
 
-      if (peek == '[') { // peek
+      if (peeked == '[') { // peek
         stack.pop();
         bracketstack.pop();
         continue;
 
-      } else if (peek == ']') {
+      } else if (peeked == ']') {
         entity.nunshift([], bracketstack.length);
         bracketstack.push(stack.pop());
         continue;
@@ -239,7 +230,7 @@ const toString = (value) => {
         operand = entity[0];
         break;
 
-      } else if (stack.peek() != ']') { // we need to evaluate array elements recursively (I think?)
+      } else if (peek(stack) != ']') { // we need to evaluate array elements recursively (I think?)
           entity.nunshift(
             resolveOperand(
               variables,
@@ -250,7 +241,7 @@ const toString = (value) => {
       }
     }
 
-  } else if (peek != null) {
+  } else if (peeked != null) {
     operand = stack.pop();
 
     if (!isNaN(parseFloat(operand)) && operand == parseFloat(operand)) {
@@ -356,7 +347,7 @@ const toString = (value) => {
     } else if (instruction = tokens[idx].match(/^<(?!fn)([^:]+):([^:]+)(:.+)?>$/)) { // instructions
 
       if (instruction[1] == 'jmpz') {
-        if (!stack.peek()) {
+        if (!peek(stack)) {
           idx = instruction[2]-1;
           timeout++;
         }
@@ -377,7 +368,7 @@ const toString = (value) => {
 
   }
 
-  return { state: variables, return: results.peek() };
+  return { state: variables, return: peek(results) };
 }
 
 /**

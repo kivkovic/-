@@ -10,14 +10,11 @@ const {precedence, prefixes, suffixes, brackets, groups} = require('./tokens.js'
  */
 
 /**
- * Nested peek: returns last elem of array optionally entering nested structure, e.g. for [1,[2,[3]]]: level=0 is [2,[3]], level=1 is [3], level=2 is 3
- * No argument or zero defaults to Array.prototype.peek(), negative returns this
+ * Array peek
  */
- Array.prototype.peek = function (level) {
-  level = level || 0;
-  return level < 0 ? this : level == 0 ?
-    this[this.length-1] : this[this.length-1].peek(level-1);
-}
+const peek = (array, level = 0) => level == 0 ?
+    array[array.length-1] : peek(array[array.length-1], level-1)
+;
 
 /**
  * Converts all infix ops to postfix (RPN), since that's easier to work with
@@ -41,10 +38,10 @@ const {precedence, prefixes, suffixes, brackets, groups} = require('./tokens.js'
       }
     }
 
-    let br = brackets['close'][brstack.peek()];
+    let br = brackets['close'][peek(brstack)];
 
-    if (char == brstack.peek()) {
-      while (stack.peek() != br) {
+    if (char == peek(brstack)) {
+      while (peek(stack) != br) {
         output.push(stack.pop());
       }
       stack.pop();
@@ -57,7 +54,7 @@ const {precedence, prefixes, suffixes, brackets, groups} = require('./tokens.js'
     } else {
 
       while (!brackets['open'][char] && stack.length
-        && ((precedence[stack.peek()]||100) >= (precedence[char]||100))) {
+        && ((precedence[peek(stack)]||100) >= (precedence[char]||100))) {
         output.push(stack.pop());
       }
 
@@ -178,7 +175,7 @@ const {precedence, prefixes, suffixes, brackets, groups} = require('./tokens.js'
       }
     }
 
-    if (tokens.peek() != ';') { // because why not, that's why
+    if (peek(tokens) != ';') { // because why not, that's why
       tokens.push(';');
     };
 
@@ -248,11 +245,11 @@ const {precedence, prefixes, suffixes, brackets, groups} = require('./tokens.js'
         if (tokens[jdx] === '#!') {
           tokens[jdx] = '<jmp:' + (idx+1) + ':break>';
         } else if (tokens[jdx] === '#$') {
-          tokens[jdx] = '<jmp:' + loops.peek().condition + ':continue>';
+          tokens[jdx] = '<jmp:' + peek(loops).condition + ':continue>';
         }
       }
 
-      tokens[idx] = '<jmp:' + loops.peek().condition + ':loop>';
+      tokens[idx] = '<jmp:' + peek(loops).condition + ':loop>';
       tokens[loops.pop().start] = '<jmpz:' + (idx+1) + ':loop>';
 
     } else if (tokens[idx] === '#@') {
