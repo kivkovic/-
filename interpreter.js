@@ -3,24 +3,6 @@
 const {precedence, prefixes, suffixes, brackets} = require('./tokens.js');
 
 /**
- * Utils
- */
-
-/**
- * Nested unshift: finds first elem of array and appends the current value in front to it, entering n levels of nested structures
- * e.g. nunshift for [[[1],2],3]: level=0 will place value before [[1],2], level=1 will place it before [1], level=2 will place it before 1
- */
- Array.prototype.nunshift = function (value, level) {
-  if (!(level > 0)) {
-    this.unshift(value);
-  } else if (level == 1) {
-    this[0] = [value].concat(this[0]);
-  } else {
-    this[0].nunshift(value, level-1);
-  }
-}
-
-/**
  * Sets an element in a nested structure, e.g. in a multidimensional array or complex JSON
  * If this is an array and key (index) is out of bounds, fill the array with nulls up to that point
  */
@@ -55,6 +37,18 @@ const toString = (value) => {
 const peek = (array, level = 0) => level == 0 ?
     array[array.length-1] : peek(array[array.length-1], level-1)
 ;
+
+const nunshift = (array, value, level) => {
+  if (!(level > 0)) {
+    array.unshift(value);
+  } else if (level == 1) {
+    array[0] = [value].concat(array[0]);
+  } else {
+    array[0] = nunshift(array[0], value, level-1);
+  }
+  return array;
+}
+
 
 /**
  * Globals
@@ -221,7 +215,7 @@ const peek = (array, level = 0) => level == 0 ?
         continue;
 
       } else if (peeked == ']') {
-        entity.nunshift([], bracketstack.length);
+        entity = nunshift(entity, [], bracketstack.length);
         bracketstack.push(stack.pop());
         continue;
       }
@@ -231,7 +225,8 @@ const peek = (array, level = 0) => level == 0 ?
         break;
 
       } else if (peek(stack) != ']') { // we need to evaluate array elements recursively (I think?)
-          entity.nunshift(
+          entity = nunshift(
+            entity,
             resolveOperand(
               variables,
               [stack.pop()],
